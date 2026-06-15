@@ -1,10 +1,19 @@
 import mlflow.sklearn
-import mlflow
 import os
-MODEL_NAME = "ChurnClassifier"
-MODEL_STAGE = "models:/ChurnClassifier/latest"
+import glob
+
 def load_model():
-    mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000"))
-    model = mlflow.sklearn.load_model(MODEL_STAGE)
-    print(f"Model loaded: {MODEL_STAGE}")
+    base = os.getenv("MODEL_PATH", "/app/mlruns")
+    patterns = [
+        os.path.join(base, "*/models/*/artifacts/MLmodel"),
+        os.path.join(base, "*/*/artifacts/model/MLmodel"),
+    ]
+    matches = []
+    for pattern in patterns:
+        matches.extend(glob.glob(pattern))
+    if not matches:
+        raise FileNotFoundError(f"No MLmodel found under {base}")
+    model_dir = os.path.dirname(sorted(matches)[-1])
+    model = mlflow.sklearn.load_model(model_dir)
+    print(f"Model loaded from: {model_dir}")
     return model
